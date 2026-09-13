@@ -4,7 +4,7 @@
 #define BACKGROUND_H
 
 
-// permite almacenar la informacion de procesos background para luego listarlos con job
+//representa un proceso background
 
 struct Proceso_background
 {
@@ -15,7 +15,7 @@ struct Proceso_background
 };
 
 
-//a ejecutar con el comando "jobs" , muestra los procesos background
+//se ejecuta con el comando "jobs" , muestra los procesos background almacenados
 
 void jobs(int cant_pros_background, struct Proceso_background lista_pros_background[]);
 

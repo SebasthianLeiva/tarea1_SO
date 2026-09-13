@@ -12,7 +12,9 @@
 
 void jobs(int cant_pros_background, struct Proceso_background lista_pros_background[]){
 
-    int status;
+    int status; // waitpid() le asigna informacion del proceso 
+
+    //recorre todos los procesos background de la lista, se actualiza su estado y se imprime su PID, comandos y estado
 
     for (int i = 0; i < cant_pros_background; i++){
 

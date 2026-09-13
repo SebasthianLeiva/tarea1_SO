@@ -85,7 +85,7 @@ void shell()
             exit(0);
         }
 
-        //Build-in "cd"
+        //Built-in "cd"
 
         else if (strcmp(args[0], "cd") == 0)
         {
@@ -110,7 +110,7 @@ void shell()
         }
 
         
-        //Build-in "jobs"
+        //Built-in "jobs"
 
         else if (strcmp(args[0], "jobs") == 0)
         {
@@ -119,7 +119,7 @@ void shell()
 
         }
 
-        //Build-in "pmon"
+        //Built-in "pmon"
 
         else if (strcmp(args[0], "pmon") == 0)
         {
