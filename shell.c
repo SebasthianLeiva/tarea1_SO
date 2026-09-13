@@ -31,12 +31,14 @@ void shell()
     // guarda la posicion en la que insertar el siguiente proceso background
 
     int cant_pros_background = 0;
+    inicializar_background(lista_pros_background, 100);
 
     while (true)
     {
+        // notifica si algun proceso background termino desde la ultima llamada a jobs o al inicio de la shell
+        notificar_background(lista_pros_background, cant_pros_background);
 
         // imprime el directorio en el prompt
-
         char directorio[1024];
 
         getcwd(directorio, sizeof(directorio));
@@ -150,10 +152,13 @@ void shell()
 
             verificar_operadores_redir(&append, args, &archivo_salida, &archivo_entrada);
 
+            bloquear_sigchld();
+            
             __pid_t pid = fork(); // se crea el proceso hijo
 
             if (pid == 0)
             {
+                desbloquear_sigchld(); // el hijo desbloquea SIGCHLD para que pueda ser manejado por el padre
 
                 // //se redirecciona la entrada y/o salida en caso de ser necesario
 
@@ -181,8 +186,6 @@ void shell()
 
             else if ((pid > 0) && background == true){
 
-                // se agrega el proceso background a la lista con estado inicial "Ejecutando"
-
                 char comando[1024]; // string vacio
 
                 // se quita <,>,>> y & de args
@@ -192,16 +195,10 @@ void shell()
 
                 reconstruir_comando(args, comando); // reconstruye cadena de comandos
 
-                lista_pros_background[cant_pros_background].pid = pid;
-
-                strcpy(lista_pros_background[cant_pros_background].comando, comando);
-
-                strcpy(lista_pros_background[cant_pros_background].estado, "Ejecutando");
-
-                // actualiza la posicion actual del primer elemento vacio de la lista de
-                // procesos background
-
-                cant_pros_background++;
+                int numero_job = registrar_background(lista_pros_background,&cant_pros_background, 100, pid, comando);
+                if (numero_job >= 0)
+                    printf("[%d] %d\n", numero_job, pid);
+                desbloquear_sigchld();
             }
 
 
@@ -211,6 +208,7 @@ void shell()
 
                 int status;
 
+                desbloquear_sigchld();
                 waitpid(pid, &status, 0); // espera al hijo
             }
 
@@ -218,6 +216,7 @@ void shell()
 
             else{ 
 
+                desbloquear_sigchld();
                 perror("fork");
 
                 return;
@@ -225,5 +224,4 @@ void shell()
         }
     }
 }
-
 
