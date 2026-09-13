@@ -85,6 +85,8 @@ void shell()
             exit(0);
         }
 
+        //Build-in "cd"
+
         else if (strcmp(args[0], "cd") == 0)
         {
 
@@ -107,6 +109,9 @@ void shell()
 
         }
 
+        
+        //Build-in "jobs"
+
         else if (strcmp(args[0], "jobs") == 0)
         {
 
@@ -114,16 +119,19 @@ void shell()
 
         }
 
+        //Build-in "pmon"
+
         else if (strcmp(args[0], "pmon") == 0)
         {
 
-            // ejecutar pmon directamente
+            // TODO: implementar pmon
+
+
         }
 
-        // si el comando es diferecte a los anteriores se ejecuta fork + execvp
 
-        else
-        {
+        else{ // si el comando es diferecte a los anteriores se ejecuta fork + execvp
+            
 
             // pasa a true en caso de encontrarse & (programa a ejecutar en background)
 
@@ -171,8 +179,7 @@ void shell()
 
             // proceso background
 
-            else if ((pid > 0) && background == true)
-            {
+            else if ((pid > 0) && background == true){
 
                 // se agrega el proceso background a la lista con estado inicial "Ejecutando"
 
@@ -197,16 +204,19 @@ void shell()
                 cant_pros_background++;
             }
 
-            else if (pid > 0 && background == false)
-            { // proceso del padre (shell)
+
+            // proceso del padre (shell) 
+
+            else if (pid > 0 && background == false){ 
 
                 int status;
 
                 waitpid(pid, &status, 0); // espera al hijo
             }
 
-            else
-            { // el programa termina ante error fatal de fork
+            // el programa termina ante error fatal de fork 
+
+            else{ 
 
                 perror("fork");
 
