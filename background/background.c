@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "background.h"
+#include <stdbool.h>
 
 static struct Proceso_background *lista_global; // puntero a la lista de procesos background
 static volatile sig_atomic_t terminados[100]; // array que indica si un proceso background ha terminado (1) o no (0)
@@ -88,6 +89,8 @@ int registrar_background(struct Proceso_background lista[], int *cantidad, int c
     indice = *cantidad;
     lista[indice].pid = pid;
     lista[indice].numero = indice + 1;
+    lista[indice].ticks_cpu= 0;
+    lista[indice].tiene_medicion_cpu = false;
 
     // copia el comando y el estado a la estructura correspondiente
     snprintf(lista[indice].comando, sizeof(lista[indice].comando), "%s", comando);
@@ -115,8 +118,13 @@ void notificar_background(struct Proceso_background lista[], int cantidad)
 void jobs(int cant_pros_background, struct Proceso_background lista_pros_background[]){
     notificar_background(lista_pros_background, cant_pros_background); // notifica si terminaron procesos en background
     for (int i = 0; i < cant_pros_background; i++){ // recorre la lista de procesos en background para desplegar su informacion
-        printf("PID: %d\n", lista_pros_background[i].pid);
-        printf("Comando: %s\n", lista_pros_background[i].comando);
-        printf("Estado: %s\n", lista_pros_background[i].estado);
+
+        printf("%-8s %-25s %-12s\n", "PID", "COMANDO", "ESTADO");
+
+        printf("%-8d %-25s %-12s  \n",
+        lista_pros_background[i].pid,
+        lista_pros_background[i].comando,
+        lista_pros_background[i].estado);
+
     }
 }

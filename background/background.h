@@ -2,6 +2,7 @@
 #define BACKGROUND_H
 #include <signal.h>
 #include <sys/types.h>
+#include <stdbool.h>
 
 //representa un proceso background
 struct Proceso_background
@@ -10,6 +11,8 @@ struct Proceso_background
     int numero;
     char comando[1024];
     char estado[20];
+    unsigned long ticks_cpu;
+    bool tiene_medicion_cpu;
 };
 
 // inicializa el registro y el manejador asincrono de SIGCHLD

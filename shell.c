@@ -17,6 +17,8 @@
 #include "background/background.h"
 
 #include "shell.h"
+#include "pmon/pmon.h"
+
 
 
 void shell()
@@ -126,8 +128,20 @@ void shell()
         else if (strcmp(args[0], "pmon") == 0)
         {
 
-            // TODO: implementar pmon
+            //se define cada cuantos segundos pmon se debe ejecutar
 
+            int segundos = 2; 
+
+            if(args[1]!=NULL){ 
+
+                segundos = atoi(args[1]);
+            }
+
+            //TODO: implementar limpieza de la impresion, para que no se imprima una abajo de otra
+
+            //TODO: refrescar periodicamente usando alarm() y SIGALARM
+
+            pmon(lista_pros_background,cant_pros_background,segundos);
 
         }
 
@@ -196,6 +210,7 @@ void shell()
                 reconstruir_comando(args, comando); // reconstruye cadena de comandos
 
                 int numero_job = registrar_background(lista_pros_background,&cant_pros_background, 100, pid, comando);
+
                 if (numero_job >= 0)
                     printf("[%d] %d\n", numero_job, pid);
                 desbloquear_sigchld();
