@@ -15,6 +15,7 @@
 #include "redireccion/redireccion.h"
 #include "parsing/parser.h"
 #include "background/background.h"
+#include "signals/signals.h"
 
 #include "shell.h"
 #include "pmon/pmon.h"
@@ -34,6 +35,11 @@ void shell()
 
     int cant_pros_background = 0;
     inicializar_background(lista_pros_background, 100);
+
+    // La shell principal ignora Ctrl+C y Ctrl+\.
+    configurar_senales_shell();
+
+
 
     while (true)
     {
@@ -172,33 +178,59 @@ void shell()
 
             if (pid == 0)
             {
-                desbloquear_sigchld(); // el hijo desbloquea SIGCHLD para que pueda ser manejado por el padre
+                // El hijo ya no necesita mantener SIGCHLD bloqueado.
+                desbloquear_sigchld();
 
-                // //se redirecciona la entrada y/o salida en caso de ser necesario
+                /*
+                * Los procesos background se colocan en un grupo de procesos propio,
+                * evitando que reciban Ctrl+C dirigido al grupo foreground de la shell.
+                */
+                if (background)
+                {
+                    if (setpgid(0, 0) == -1)
+                    {
+                        perror("setpgid");
+                        _exit(1);
+                    }
+                }
 
-                redireccionar_entrada_salida(archivo_salida, archivo_entrada, append);
+                /*
+                * fork() hereda la configuración de señales de la shell.
+                * Restauramos SIGINT y SIGQUIT para que el programa ejecutado
+                * tenga el comportamiento normal de un proceso Linux.
+                */
+                restaurar_senales_hijo();
+
+                // Se redirecciona la entrada y/o salida si corresponde.
+                redireccionar_entrada_salida(
+                    archivo_salida,
+                    archivo_entrada,
+                    append
+                );
 
                 if (archivo_salida != NULL || archivo_entrada != NULL)
                 {
-
                     limpiar_redireccion_args(args);
                 }
 
                 limpiar_background(args);
 
-                // el hijo pasa a ejecutar el proceso del primer argumento de args
-                // usando como argumentos los posteriores a el
-
                 execvp(args[0], args);
 
-                perror("execvp"); /* solo si exec falla */
-
+                perror("execvp");
                 _exit(127);
             }
 
             // proceso background
 
             else if ((pid > 0) && background == true){
+
+                /*
+                 * El padre también intenta colocar al hijo background en su propio
+                 * grupo para evitar condiciones de carrera con el hijo.
+                 */
+                if (setpgid(pid, pid) == -1)
+                    {perror("setpgid");}
 
                 char comando[1024]; // string vacio
 
