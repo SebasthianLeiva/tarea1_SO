@@ -16,6 +16,7 @@
 #include "parsing/parser.h"
 #include "background/background.h"
 #include "signals/signals.h"
+#include "pipes/pipes.h"
 
 #include "shell.h"
 #include "pmon/pmon.h"
@@ -152,25 +153,63 @@ void shell()
         }
 
 
-        else{ // si el comando es diferecte a los anteriores se ejecuta fork + execvp
-            
+        else{ // si el comando es diferente a los anteriores se ejecuta fork + execvp
 
-            // pasa a true en caso de encontrarse & (programa a ejecutar en background)
+    // Pasa a true si el comando debe ejecutarse en background.
+    bool background = verificar_background(args);
 
-            bool background = false;
+    // Verifica si la entrada contiene uno o más pipes.
+    bool tiene_pipe = verificar_pipe(args);
 
-            background = verificar_background(args);
+    /*
+     * Los comandos con pipe necesitan varios procesos hijos,
+     * por lo que se ejecutan mediante el módulo pipes en lugar
+     * del fork + execvp normal de la shell.
+     */
+     
+    if (tiene_pipe)
+    {
+        /*
+         * Si la tubería termina en &, quitamos ese argumento
+         * antes de separar los comandos.
+         */
+        if (background)
+        {
+            limpiar_background(args);
+        }
 
-            // guardan el archivo de entrada y salida para poder abrirlos con open()
+        // Guarda el inicio de cada comando separado por "|".
+        char **comandos[100];
 
-            char *archivo_entrada = NULL;
-            char *archivo_salida = NULL;
+        int cantidad_comandos =
+            separar_comandos_pipe(args, comandos, 100);
 
-            int append = 0; // cambia a 1 si se encuentra >> (escritura con append)
+        ejecutar_pipeline(comandos, cantidad_comandos, background);
 
-            // se verifica si la entrada solicita redireccion con: < , > o >>
+        /*
+         * La entrada ya fue ejecutada como pipeline.
+         * Volvemos al inicio del while para mostrar el siguiente prompt.
+         */
+        continue;
+    }
 
-            verificar_operadores_redir(&append, args, &archivo_salida, &archivo_entrada);
+
+    /*
+     * Desde aquí sigue el funcionamiento normal para comandos
+     * que NO contienen pipes.
+     */
+
+    char *archivo_entrada = NULL;
+    char *archivo_salida = NULL;
+
+    int append = 0;
+
+    verificar_operadores_redir(
+        &append,
+        args,
+        &archivo_salida,
+        &archivo_entrada
+    );
 
             bloquear_sigchld();
             
