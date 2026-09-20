@@ -17,14 +17,27 @@ static void manejar_sigchld(int senal)
     (void)senal; // evita advertencias de compilacion por variable no utilizada
 
     // el bucle maneja todos los procesos hijos que hayan terminado
-    while ((pid = waitpid(-1, &estado, WNOHANG)) > 0)
-    {
-        for (int i = 0; i < capacidad_global; i++)
-        {
-            if (lista_global[i].pid == pid)
+    while ((pid = waitpid(-1, &estado, WNOHANG)) > 0){
+        for (int i = 0; i < capacidad_global; i++){
+            for (int j = 0; j < lista_global[i].cantidad_pids; j++)
             {
-                terminados[i] = 1;
-                break;
+                if (lista_global[i].pids[j] == pid)
+                {
+                
+                    // Uno de los procesos pertenecientes al job terminó.
+    
+                    lista_global[i].procesos_terminados++;
+
+                    /*
+                    * El job completo se considera terminado solamente
+                    * cuando finalizaron todos sus procesos.
+                    */
+                    if (lista_global[i].procesos_terminados >= lista_global[i].cantidad_pids){
+                        terminados[i] = 1;
+                    }
+
+                    break;
+                }
             }
         }
     }
@@ -87,7 +100,9 @@ int registrar_background(struct Proceso_background lista[], int *cantidad, int c
     }
 
     indice = *cantidad;
-    lista[indice].pid = pid;
+    lista[indice].pids[0] = pid;
+    lista[indice].cantidad_pids = 1;
+    lista[indice].procesos_terminados = 0;
     lista[indice].numero = indice + 1;
     lista[indice].ticks_cpu= 0;
     lista[indice].tiene_medicion_cpu = false;
@@ -99,6 +114,67 @@ int registrar_background(struct Proceso_background lista[], int *cantidad, int c
     (*cantidad)++;
 
     return lista[indice].numero; // devuelve el numero de job asignado
+}
+
+int registrar_pipeline_background(
+    struct Proceso_background lista[],
+    int *cantidad,
+    int capacidad,
+    pid_t pids[],
+    int cantidad_pids,
+    const char *comando)
+{
+    if (*cantidad >= capacidad)
+    {
+        fprintf(stderr, "Se alcanzo el limite de jobs en background\n");
+        return -1;
+    }
+
+    if (cantidad_pids <= 0 || cantidad_pids > MAX_PROCESOS_JOB)
+    {
+        fprintf(stderr, "Cantidad invalida de procesos en pipeline\n");
+        return -1;
+    }
+
+    int indice = *cantidad;
+
+    /*
+     * El primer proceso se mantiene como PID representativo
+     * del job y también actuará como líder del grupo.
+     */
+    lista[indice].pid = pids[0];
+
+    // Guardamos todos los procesos que forman la tubería.
+    for (int i = 0; i < cantidad_pids; i++)
+    {
+        lista[indice].pids[i] = pids[i];
+    }
+
+    lista[indice].cantidad_pids = cantidad_pids;
+    lista[indice].procesos_terminados = 0;
+
+    lista[indice].numero = indice + 1;
+    lista[indice].ticks_cpu = 0;
+    lista[indice].tiene_medicion_cpu = false;
+
+    snprintf(
+        lista[indice].comando,
+        sizeof(lista[indice].comando),
+        "%s",
+        comando
+    );
+
+    snprintf(
+        lista[indice].estado,
+        sizeof(lista[indice].estado),
+        "Ejecutando"
+    );
+
+    terminados[indice] = 0;
+
+    (*cantidad)++;
+
+    return lista[indice].numero;
 }
 
 void notificar_background(struct Proceso_background lista[], int cantidad)

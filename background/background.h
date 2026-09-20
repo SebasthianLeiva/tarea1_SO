@@ -3,17 +3,39 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <stdbool.h>
+#define MAX_PROCESOS_JOB 100
 
 //representa un proceso background
-struct Proceso_background
-{
+struct Proceso_background{
+
+    // PID representativo del job.
     pid_t pid;
+
+    /*
+     * Un job puede contener varios procesos cuando se ejecuta
+     * una tubería en background.
+     */
+    pid_t pids[MAX_PROCESOS_JOB];
+    int cantidad_pids;
+    int procesos_terminados;
+
     int numero;
     char comando[1024];
     char estado[20];
     unsigned long ticks_cpu;
     bool tiene_medicion_cpu;
 };
+
+// Registra una tubería completa como un único job en background.
+
+int registrar_pipeline_background(
+    struct Proceso_background lista_pros_background[],
+    int *cant_pros_background,
+    int capacidad,
+    pid_t pids[],
+    int cantidad_pids,
+    const char *comando
+);
 
 // inicializa el registro y el manejador asincrono de SIGCHLD
 void inicializar_background(struct Proceso_background lista_pros_background[], int capacidad);
@@ -30,5 +52,7 @@ void notificar_background(struct Proceso_background lista_pros_background[], int
 
 //se ejecuta con el comando "jobs" , muestra los procesos background almacenados
 void jobs(int cant_pros_background, struct Proceso_background lista_pros_background[]);
+
+
 
 #endif

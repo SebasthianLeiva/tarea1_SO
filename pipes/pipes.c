@@ -6,9 +6,9 @@
 
 #include "pipes.h"
 #include "../signals/signals.h"
+#include "../background/background.h"
 
-
-int ejecutar_pipeline(char **comandos[], int cantidad_comandos, bool background)
+int ejecutar_pipeline(char **comandos[], int cantidad_comandos, bool background,  pid_t pids_salida[])
 {
 
 //Una tubería de N comandos necesita N-1 pipes
@@ -35,6 +35,8 @@ int ejecutar_pipeline(char **comandos[], int cantidad_comandos, bool background)
         }
     }
 
+    pid_t pgid_pipeline = 0;
+
     // Cada comando de la tubería se ejecuta en un proceso distinto
     for (int i = 0; i < cantidad_comandos; i++)
     {
@@ -54,8 +56,16 @@ int ejecutar_pipeline(char **comandos[], int cantidad_comandos, bool background)
             return -1;
         }
 
-        if (pid == 0)
-        {
+        if (pid == 0){
+             // El hijo no necesita conservar SIGCHLD bloqueado.
+            desbloquear_sigchld();
+
+             if (background){
+                if (pgid_pipeline == 0)
+                setpgid(0, 0);
+            else
+                setpgid(0, pgid_pipeline);
+        }
             /*
              * Los hijos recuperan el comportamiento normal de
              * SIGINT y SIGQUIT antes de ejecutar el comando
@@ -105,8 +115,23 @@ int ejecutar_pipeline(char **comandos[], int cantidad_comandos, bool background)
             _exit(127);
         }
 
+            if (background){
+        if (pgid_pipeline == 0)
+        {
+            pgid_pipeline = pid;
+        }
+
+        if (setpgid(pid, pgid_pipeline) == -1)
+        {
+            perror("setpgid");
+        }
+    }
+
         // El padre guarda cada PID para poder esperarlos después
         pids[i] = pid;
+
+        // También se entrega el PID a la shell para registrar jobs background.
+        pids_salida[i] = pid;
     }
 
     /*
@@ -131,5 +156,5 @@ int ejecutar_pipeline(char **comandos[], int cantidad_comandos, bool background)
         }
     }
 
-    return 0;
+    return cantidad_comandos;
 }

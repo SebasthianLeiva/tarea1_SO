@@ -167,31 +167,72 @@ void shell()
      * del fork + execvp normal de la shell.
      */
      
-    if (tiene_pipe)
-    {
-        /*
-         * Si la tubería termina en &, quitamos ese argumento
-         * antes de separar los comandos.
-         */
-        if (background)
+        if (tiene_pipe)
         {
-            limpiar_background(args);
+            if (background)
+            {
+                limpiar_background(args);
+            }
+
+            /*
+            * Guardamos el comando completo antes de separar la tubería,
+            * para poder registrarlo posteriormente en jobs.
+            */
+            char comando[1024];
+            reconstruir_comando(args, comando);
+
+            char **comandos[100];
+            pid_t pids_pipeline[100];
+
+            int cantidad_comandos =
+                separar_comandos_pipe(args, comandos, 100);
+
+            /*
+            * SIGCHLD permanece bloqueado mientras se crean y registran
+            * los procesos para evitar que terminen antes del registro.
+            */
+            bloquear_sigchld();
+
+            int cantidad_pids =
+                ejecutar_pipeline(
+                    comandos,
+                    cantidad_comandos,
+                    background,
+                    pids_pipeline
+                );
+
+            if (cantidad_pids == -1)
+            {
+                desbloquear_sigchld();
+                continue;
+            }
+
+            if (background)
+            {
+                int numero_job =
+                    registrar_pipeline_background(
+                        lista_pros_background,
+                        &cant_pros_background,
+                        100,
+                        pids_pipeline,
+                        cantidad_pids,
+                        comando
+                    );
+
+                if (numero_job >= 0)
+                {
+                    printf(
+                        "[%d] %d\n",
+                        numero_job,
+                        pids_pipeline[0]
+                    );
+                }
+            }
+
+            desbloquear_sigchld();
+
+            continue;
         }
-
-        // Guarda el inicio de cada comando separado por "|".
-        char **comandos[100];
-
-        int cantidad_comandos =
-            separar_comandos_pipe(args, comandos, 100);
-
-        ejecutar_pipeline(comandos, cantidad_comandos, background);
-
-        /*
-         * La entrada ya fue ejecutada como pipeline.
-         * Volvemos al inicio del while para mostrar el siguiente prompt.
-         */
-        continue;
-    }
 
 
     /*
