@@ -8,17 +8,55 @@
 
 void parsear_entrada(char *entrada_usuario, char *args[], int max_argumentos)
 {
-    char *token = strtok(entrada_usuario, " \n");
-
     int i = 0;
+    char *lectura = entrada_usuario;
 
-    while (token != NULL && i < max_argumentos - 1)
+    while (*lectura != '\0' && i < max_argumentos - 1)
     {
-        args[i] = token;
+        char *escritura;
+        char comilla = '\0';
 
+        while (*lectura == ' ' || *lectura == '\t' || *lectura == '\n')
+            lectura++;
+
+        if (*lectura == '\0')
+            break;
+
+        args[i] = lectura;
+        escritura = lectura;
+
+        while (*lectura != '\0')
+        {
+            if (comilla != '\0')
+            {
+                if (*lectura == comilla)
+                    comilla = '\0';
+                else
+                    *escritura++ = *lectura;
+            }
+            else if (*lectura == '\'' || *lectura == '"')
+            {
+                comilla = *lectura;
+            }
+            else if (*lectura == ' ' || *lectura == '\t' ||
+                     *lectura == '\n')
+            {
+                lectura++;
+                break;
+            }
+            else
+            {
+                *escritura++ = *lectura;
+            }
+
+            lectura++;
+        }
+
+        *escritura = '\0';
         i++;
 
-        token = strtok(NULL, " \n");
+        while (*lectura == ' ' || *lectura == '\t' || *lectura == '\n')
+            lectura++;
     }
 
     args[i] = NULL;
@@ -139,5 +177,3 @@ void reconstruir_comando(char *args[], char *comando)
         }
     }
 }
-
-

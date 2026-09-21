@@ -100,6 +100,7 @@ int registrar_background(struct Proceso_background lista[], int *cantidad, int c
     }
 
     indice = *cantidad;
+    lista[indice].pid = pid;
     lista[indice].pids[0] = pid;
     lista[indice].cantidad_pids = 1;
     lista[indice].procesos_terminados = 0;
